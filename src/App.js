@@ -1,25 +1,39 @@
-import { useEffect, useState } from "react";
-import {
-    BrowserRouter as Router,
-    Routes,
-    Route,
-    Navigate,
-} from "react-router-dom";
-import HomePage from "./components/HomePage";
+import React, { useEffect, useState } from "react";
+import firebase from 'firebase/compat/app'
+import 'firebase/compat/auth'
+import { firebaseConfig } from './firebaseConfig'
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Navigation from "./components/Navigation";
 import AdminPage from "./components/AdminPage";
-import "./App.css";
+import Auth from './components/Auth';
+
+firebase.initializeApp(firebaseConfig)
 
 function App() {
-    return (
-        <Router>
-            <Navigation />
-            <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/admin" element={<AdminPage />} />
-            </Routes>
-        </Router>
-    );
+
+  const [redirect, setRedirect] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = firebase.auth().onAuthStateChanged((user) => {
+      if (user) {
+        setRedirect(false);
+      } else {
+        setRedirect(true);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  return (
+    <Router>
+      <Navigation />
+      <Routes>
+        <Route path="/auth" element={redirect ? <Auth /> : <Navigate to="/admin" />} />
+        <Route path="/admin" element={redirect ? <Navigate to="/auth" /> : <AdminPage />} />
+      </Routes>
+    </Router>
+  );
 }
 
 export default App;

@@ -1,72 +1,74 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import * as api from "./api";
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
+import * as api from './api'
 
-//получаем методы, отправляющие запросы к серверу, создаем из них действия, которые будем использовать в срезе и компонентах
 export const fetchProducts = createAsyncThunk(
-    "products/fetchProducts",
+    'products/fetchProducts',
     api.getProducts
-);
+)
 export const addProduct = createAsyncThunk(
-    "products/addProduct",
+    'products/addProduct',
     api.addProduct
-);
+)
 export const updateProduct = createAsyncThunk(
-    "product/updateProduct",
-    api.updateProduct
-);
+    'products/updateProduct',
+    async product => {
+        const response = await api.updateProduct(product) // Проверьте, что правильный URL передается в эту функцию
+        return response.data
+    }
+)
 export const deleteProduct = createAsyncThunk(
-    "product/deleteProduct",
+    'products/deleteProduct',
     api.deleteProduct
-);
+)
 
 const productsSlice = createSlice({
-    name: "products",
+    name: 'products',
     initialState: {
         list: [],
-        status: "idle",
+        status: 'idle',
         error: null,
     },
     reducers: {},
-    extraReducers: (builder) => {
+    //для остальных действий можно прописать такие же состояния как для получения данных
+    extraReducers: builder => {
         builder
-            .addCase(fetchProducts.pending, (state) => {
-                state.status = "loading";
+            .addCase(fetchProducts.pending, state => {
+                state.status = 'loading'
             })
             .addCase(fetchProducts.fulfilled, (state, action) => {
-                state.status = "succeeded";
-                state.list = action.payload;
+                state.status = 'succeeded'
+                state.list = action.payload
             })
             .addCase(fetchProducts.rejected, (state, action) => {
-                state.status = "failed";
-                state.error = action.error.message;
+                state.status = 'failed'
+                state.error = action.error.message
             })
             .addCase(addProduct.fulfilled, (state, action) => {
-                state.list.push(action.payload);
+                state.list.push(action.payload)
             })
             .addCase(updateProduct.fulfilled, (state, action) => {
-                const { id, data } = action.payload;
-                const existingProductIndex = state.list.findIndex(
-                    (product) => product._id === id
-                );
-                if (existingProductIndex !== -1) {
-                    state.list[existingProductIndex] = {
-                        ...state.list[existingProductIndex],
-                        ...data,
-                    };
+                const updatedProduct = action.payload
+                const existingProduct = state.list.find(
+                    product => product._id === updatedProduct._id
+                )
+                //создание копии объекта
+                if (existingProduct) {
+                    Object.assign(existingProduct, updatedProduct)
                 }
             })
             .addCase(deleteProduct.fulfilled, (state, action) => {
                 state.list = state.list.filter(
-                    (product) => product._id !== action.payload
-                );
-            });
+                    product => product._id !== action.payload
+                )
+            })
     },
-});
+})
 
-//селекторы для извлечения данных из стора и доступа к данным состояния products в сторе
-//первый - возвращает список всех товаров
-//второй - возвращает товар по id
-export const selectAllProducts = state => state.products.list;
-export const selectProductById = (state, productId) => state.products.list.find(product => product._id === productId);
+//селекторы для извлечения данных из стора. доступ к данным состояния products в сторе
+//первый - возвращает полный список товаров
+//второй - находит конкретный товар по id
+export const selectAllProducts = state => state.products.list
+export const selectProductById = (state, productId) =>
+    state.products.list.find(product => product._id === productId)
 
-export default productsSlice.reducer;
+export default productsSlice.reducer
